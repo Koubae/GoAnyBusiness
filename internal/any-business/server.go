@@ -12,9 +12,22 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("Error loading .env file: %s", err.Error()))
 	}
+
+	config := NewConfig(DefaultConfigName)
+	switch config.Env {
+	case Testing:
+		gin.SetMode(gin.TestMode)
+	case Development, Staging:
+		gin.SetMode(gin.DebugMode)
+	default:
+		gin.SetMode(gin.ReleaseMode)
+	}
 }
 
 func Run() {
+	config := GetDefaultConfig()
+	println(config.GetURL())
+
 	router := gin.Default()
 	router.GET(
 		"/ping", func(c *gin.Context) {
