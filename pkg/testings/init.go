@@ -15,7 +15,6 @@ func init() {
 	if err != nil {
 		panic("Error loading .env.test file: " + err.Error())
 	}
-
 }
 
 func getCurrentFilePath() string {

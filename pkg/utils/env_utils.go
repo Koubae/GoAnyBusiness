@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func GetEnvString(key string, defaultVal string) string {
+func GetEnvString(key, defaultVal string) string {
 	if val, ok := os.LookupEnv(key); ok {
 		val = strings.TrimSpace(val)
 		if val != "" {
@@ -15,7 +15,6 @@ func GetEnvString(key string, defaultVal string) string {
 		}
 	}
 	return defaultVal
-
 }
 
 func GetEnvInt(key string, defaultVal int) int {
