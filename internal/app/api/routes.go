@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -34,37 +33,13 @@ func CreateRouter(config *core.Config) *http.Handler {
 	}
 
 	index := router.Group("/")
+	indexController := &IndexController{}
 	{
-		index.GET(
-			"/", func(c *gin.Context) {
-				c.Data(
-					http.StatusOK,
-					"text/html; charset=utf-8",
-					[]byte(fmt.Sprintf("Welcome to %s V%s", config.AppName, config.AppVersion)),
-				)
-			},
-		)
-
-		index.GET(
-			"/ping", func(c *gin.Context) {
-				c.Data(http.StatusOK, "text/html; charset=utf-8", []byte("pong"))
-			},
-		)
-
-		index.GET(
-			"/alive", func(c *gin.Context) {
-				c.Data(http.StatusOK, "text/html; charset=utf-8", []byte("OK"))
-			},
-		)
-
-		index.GET(
-			"/ready", func(c *gin.Context) {
-				// TODO: check dependencies (db, cache) before reporting ready
-				c.Data(http.StatusOK, "text/html; charset=utf-8", []byte("OK"))
-			},
-		)
+		index.GET("/", indexController.Index)
+		index.GET("/ping", indexController.Ping)
+		index.GET("/alive", indexController.Alive)
+		index.GET("/ready", indexController.Ready)
 	}
-
 	handler := http.MaxBytesHandler(router, 8<<20)
 	return &handler
 }
