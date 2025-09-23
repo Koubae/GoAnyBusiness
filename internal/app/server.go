@@ -21,11 +21,14 @@ import (
 func Run() {
 	config := initEnv()
 
-	handler := api.CreateRouter(config)
+	router := gin.New()
+	router.Use(gin.Logger(), gin.Recovery())
+	api.ConfigureRouter(router, config)
 
+	handler := http.MaxBytesHandler(router, 8<<20)
 	srv := &http.Server{
 		Addr:              config.GetAddr(),
-		Handler:           *handler,
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      30 * time.Second,

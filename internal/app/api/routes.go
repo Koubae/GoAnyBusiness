@@ -2,7 +2,6 @@ package api
 
 import (
 	"log"
-	"net/http"
 	"time"
 
 	"github.com/Koubae/GoAnyBusiness/internal/app/core"
@@ -10,11 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// CreateRouter creates a new router
-func CreateRouter(config *core.Config) *http.Handler {
-	router := gin.New()
-	router.Use(gin.Logger(), gin.Recovery())
-
+// ConfigureRouter configures the router
+func ConfigureRouter(router *gin.Engine, config *core.Config) {
 	router.Use(
 		cors.New(
 			cors.Config{
@@ -42,6 +38,4 @@ func CreateRouter(config *core.Config) *http.Handler {
 		index.GET("/alive", indexController.Alive)
 		index.GET("/ready", indexController.Ready)
 	}
-	handler := http.MaxBytesHandler(router, 8<<20)
-	return &handler
 }
