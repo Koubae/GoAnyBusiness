@@ -1,5 +1,7 @@
 .PHONY: run build stop tests quality
 
+APP_ANY_BUSINESS := any-business
+
 # --------------------------
 # Init
 # --------------------------
@@ -21,10 +23,10 @@ install-go-static-check:
 # 	Local
 # ============================
 # //////////////////////
-# 	App
+# 	App (any-business)
 # //////////////////////
 run:
-	@go run ./cmd/app .
+	@go run ./cmd/$(APP_ANY_BUSINESS)/ .
 build:
 	@go build -v ./...
 
