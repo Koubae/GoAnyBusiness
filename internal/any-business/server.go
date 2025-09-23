@@ -1,8 +1,16 @@
 package any_business
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"log"
+	"net/http"
+	"os/signal"
+	"syscall"
+	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
@@ -26,17 +34,88 @@ func init() {
 
 func Run() {
 	config := GetDefaultConfig()
-	println(config.GetURL())
+
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT,
+	)
+	defer stop()
 
 	router := gin.Default()
-	router.GET(
-		"/ping", func(c *gin.Context) {
-			c.JSON(
-				200, gin.H{
-					"message": "pong",
-				},
-			)
-		},
-	)
-	router.Run() // listens on 0.0.0.0:8080 by default
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowAllOrigins = true
+	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+	corsConfig.AllowHeaders = []string{"Origin", "Content-Type", "Authorization"}
+	router.Use(cors.New(corsConfig))
+	err := router.SetTrustedProxies(config.TrustedProxies)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	index := router.Group("/")
+	{
+		index.GET(
+			"/", func(c *gin.Context) {
+				c.Data(
+					200,
+					"text/html; charset=utf-8",
+					[]byte(fmt.Sprintf("Welcome to %s V%s", config.AppName, config.AppVersion)),
+				)
+			},
+		)
+
+		index.GET(
+			"/ping", func(c *gin.Context) {
+				c.Data(200, "text/html; charset=utf-8", []byte("pong"))
+			},
+		)
+
+		index.GET(
+			"/alive", func(c *gin.Context) {
+				c.Data(200, "text/html; charset=utf-8", []byte("OK"))
+			},
+		)
+
+		index.GET(
+			"/ready", func(c *gin.Context) {
+				c.Data(200, "text/html; charset=utf-8", []byte("OK"))
+			},
+		)
+	}
+
+	srv := &http.Server{
+		Addr:    config.GetAddr(),
+		Handler: router,
+	}
+	srvName := fmt.Sprintf("Service %s-V%s (%s)", config.AppName, config.AppVersion, config.GetAddr())
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("%s - Error while shutting down server, error: %v\n", err, srvName)
+		}
+	}()
+	log.Printf("%s | Server started\n", srvName)
+
+	// Listen for the interrupt signal.
+	<-ctx.Done()
+
+	// Restore default behavior on the interrupt signal and notify the user of shutdown.
+	stop()
+	log.Printf("%s - Server Shutting down gracefully, press Ctrl+C again to force\n", srvName)
+
+	// The context is used to inform the server it has 5 seconds to finish
+	// the request it is currently handling
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("%s - Server forced to shutdown: %v\n", err, srvName)
+	}
+
+	log.Printf("%s - Server Shutdown, cleaning up resources\n", srvName)
+
+	log.Printf("%s - Server exiting\n", srvName)
+
 }
