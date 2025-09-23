@@ -25,7 +25,10 @@ linters-settings:
     checks:
       - "all"         # enable all checks
 #      - "-ST1000"     # …except specific ones you want to turn off
-
+  revive:
+    rules:
+      - name: package-comments
+        disabled: true
 
 issues:
   exclude-use-default: false
@@ -33,7 +36,7 @@ issues:
     - path: ".*_generated\\.go"
       linters: [all]
     - path: "_test\\.go"
-      linters: [errcheck]
+      linters: [errcheck, gocyclo]
 
 output:
   formats:

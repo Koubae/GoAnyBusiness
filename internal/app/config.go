@@ -1,4 +1,4 @@
-package any_business
+package app
 
 import (
 	"fmt"
@@ -10,8 +10,10 @@ import (
 	"github.com/Koubae/GoAnyBusiness/pkg/utils"
 )
 
+// Environment represents the environment
 type Environment string
 
+// Supported environments
 const (
 	Testing           Environment = "testing"
 	Development       Environment = "development"
@@ -21,6 +23,7 @@ const (
 )
 
 var (
+	// Envs is the list of supported environments
 	Envs = [...]Environment{Testing, Development, Staging, Production}
 
 	configLock sync.Mutex
@@ -28,6 +31,7 @@ var (
 	configsSingletonMapping = make(map[string]*Config)
 )
 
+// Config represents the application config
 type Config struct {
 	Env            Environment
 	AppName        string
@@ -37,6 +41,7 @@ type Config struct {
 	port           uint16
 }
 
+// NewConfig creates a new config
 func NewConfig(configName string) *Config {
 	configLock.Lock()
 	defer configLock.Unlock()
@@ -75,6 +80,7 @@ func NewConfig(configName string) *Config {
 	return config
 }
 
+// GetConfig returns a config by name
 func GetConfig(configName string) *Config {
 	config, ok := configsSingletonMapping[configName]
 	if !ok {
@@ -83,14 +89,17 @@ func GetConfig(configName string) *Config {
 	return config
 }
 
+// GetDefaultConfig returns the default config
 func GetDefaultConfig() *Config {
 	return GetConfig(DefaultConfigName)
 }
 
+// GetAddr returns the address of the server
 func (c Config) GetAddr() string {
 	return fmt.Sprintf(":%d", c.port)
 }
 
+// GetURL returns the URL of the server
 func (c Config) GetURL() string {
 	return fmt.Sprintf("%s:%d", c.host, c.port)
 }

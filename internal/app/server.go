@@ -1,4 +1,4 @@
-package any_business
+package app
 
 import (
 	"context"
@@ -16,6 +16,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// Run starts the server
 func Run() {
 	config := initEnv()
 
@@ -44,7 +45,7 @@ func Run() {
 		index.GET(
 			"/", func(c *gin.Context) {
 				c.Data(
-					200,
+					http.StatusOK,
 					"text/html; charset=utf-8",
 					[]byte(fmt.Sprintf("Welcome to %s V%s", config.AppName, config.AppVersion)),
 				)
@@ -53,20 +54,20 @@ func Run() {
 
 		index.GET(
 			"/ping", func(c *gin.Context) {
-				c.Data(200, "text/html; charset=utf-8", []byte("pong"))
+				c.Data(http.StatusOK, "text/html; charset=utf-8", []byte("pong"))
 			},
 		)
 
 		index.GET(
 			"/alive", func(c *gin.Context) {
-				c.Data(http.StatusNoContent, "text/html; charset=utf-8", []byte("OK"))
+				c.Data(http.StatusOK, "text/html; charset=utf-8", []byte("OK"))
 			},
 		)
 
 		index.GET(
 			"/ready", func(c *gin.Context) {
 				// TODO: check dependencies (db, cache) before reporting ready
-				c.Data(http.StatusNoContent, "text/html; charset=utf-8", []byte("OK"))
+				c.Data(http.StatusOK, "text/html; charset=utf-8", []byte("OK"))
 			},
 		)
 	}
@@ -85,11 +86,10 @@ func Run() {
 	go func() {
 		log.Printf("%s | Server starting...\n", srvName)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			shutdownErr <- fmt.Errorf("%s - Error while shutting down server, error: %v\n", srvName, err)
+			shutdownErr <- fmt.Errorf("%s - error while shutting down server, error: %v", srvName, err)
 			return
 		}
 		shutdownErr <- nil
-
 	}()
 	log.Printf("%s | Server started\n", srvName)
 
@@ -114,13 +114,14 @@ func Run() {
 		)
 	case err := <-shutdownErr:
 		if err != nil {
-			log.Fatalf("%s - server startup/runtime failure, error: %v\n", srvName, err) // startup/runtime failure
+			log.Printf("%s - server startup/runtime failure, error: %v\n", srvName, err) // startup/runtime failure
+		} else {
+			log.Printf(
+				"%s - Server Shutting down gracefully (After server stop serving), press Ctrl+C again to force\n",
+				srvName,
+			)
 		}
 
-		log.Printf(
-			"%s - Server Shutting down gracefully (After server stop serving), press Ctrl+C again to force\n",
-			srvName,
-		)
 	}
 
 	// The context is used to inform the server it has 10 seconds to finish
@@ -129,13 +130,13 @@ func Run() {
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
 		_ = srv.Close() // If shutdown times out, force close:
-		log.Fatalf("%s - Server forced to shutdown: %v\n", srvName, err)
+		log.Printf("%s - Server forced to shutdown: %v\n", srvName, err)
+		return
 	}
 
 	log.Printf("%s - Server Shutdown, cleaning up resources\n", srvName)
 	// TODO: cleanup resources
 	log.Printf("%s - Server exiting\n", srvName)
-
 }
 
 func initEnv() *Config {
