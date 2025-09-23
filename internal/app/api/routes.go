@@ -33,7 +33,9 @@ func CreateRouter(config *core.Config) *http.Handler {
 	}
 
 	index := router.Group("/")
-	indexController := &IndexController{}
+	indexController := &IndexController{
+		config: config,
+	}
 	{
 		index.GET("/", indexController.Index)
 		index.GET("/ping", indexController.Ping)
