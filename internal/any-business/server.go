@@ -35,15 +35,6 @@ func init() {
 func Run() {
 	config := GetDefaultConfig()
 
-	ctx, stop := signal.NotifyContext(
-		context.Background(),
-		syscall.SIGHUP,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT,
-	)
-	defer stop()
-
 	router := gin.Default()
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowAllOrigins = true
@@ -99,9 +90,17 @@ func Run() {
 	}()
 	log.Printf("%s | Server started\n", srvName)
 
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT,
+	)
+	defer stop()
+
 	// Listen for the interrupt signal.
 	<-ctx.Done()
-
 	// Restore default behavior on the interrupt signal and notify the user of shutdown.
 	stop()
 	log.Printf("%s - Server Shutting down gracefully, press Ctrl+C again to force\n", srvName)
