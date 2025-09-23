@@ -105,7 +105,7 @@ func Run() {
 	stop()
 	log.Printf("%s - Server Shutting down gracefully, press Ctrl+C again to force\n", srvName)
 
-	// The context is used to inform the server it has 5 seconds to finish
+	// The context is used to inform the server it has 10 seconds to finish
 	// the request it is currently handling
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -114,7 +114,7 @@ func Run() {
 	}
 
 	log.Printf("%s - Server Shutdown, cleaning up resources\n", srvName)
-
+	// TODO: cleanup resources
 	log.Printf("%s - Server exiting\n", srvName)
 
 }
