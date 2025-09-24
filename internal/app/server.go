@@ -41,7 +41,10 @@ func Run() {
 		*loggerMiddleware,
 		ginzap.RecoveryWithZap(loggerBase, true),
 	)
-	api.ConfigureRouter(router, config)
+	err = api.ConfigureRouter(router, config)
+	if err != nil {
+		logger.Fatalf(err.Error())
+	}
 
 	handler := http.MaxBytesHandler(router, 8<<20)
 	srv := &http.Server{

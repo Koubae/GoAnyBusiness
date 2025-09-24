@@ -1,7 +1,8 @@
 package api
 
 import (
-	"log"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/Koubae/GoAnyBusiness/internal/app/core"
@@ -10,7 +11,7 @@ import (
 )
 
 // ConfigureRouter configures the router
-func ConfigureRouter(router *gin.Engine, config *core.Config) {
+func ConfigureRouter(router *gin.Engine, config *core.Config) error {
 	allowOrigin := []string{"*"}
 	allowALlOrigins := false
 	if config.Env != core.Production {
@@ -33,7 +34,7 @@ func ConfigureRouter(router *gin.Engine, config *core.Config) {
 	)
 	err := router.SetTrustedProxies(config.TrustedProxies)
 	if err != nil {
-		log.Fatalf("Error setting trusted proxies, error: %s", err.Error())
+		return errors.New(fmt.Sprintf("Error setting trusted proxies, error: %s", err.Error()))
 	}
 
 	index := router.Group("/")
@@ -46,4 +47,6 @@ func ConfigureRouter(router *gin.Engine, config *core.Config) {
 		index.GET("/alive", indexController.Alive)
 		index.GET("/ready", indexController.Ready)
 	}
+
+	return nil
 }
