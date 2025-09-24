@@ -11,6 +11,13 @@ import (
 
 // ConfigureRouter configures the router
 func ConfigureRouter(router *gin.Engine, config *core.Config) {
+	allowOrigin := []string{"*"}
+	allowALlOrigins := false
+	if config.Env != core.Production {
+		allowOrigin = nil
+		allowALlOrigins = true
+	}
+
 	router.Use(
 		cors.New(
 			cors.Config{
@@ -19,7 +26,8 @@ func ConfigureRouter(router *gin.Engine, config *core.Config) {
 				ExposeHeaders:    []string{"Content-Length"},
 				MaxAge:           12 * time.Hour,
 				AllowCredentials: false,
-				AllowAllOrigins:  config.Env != core.Production,
+				AllowOrigins:     allowOrigin,
+				AllowAllOrigins:  allowALlOrigins,
 			},
 		),
 	)
