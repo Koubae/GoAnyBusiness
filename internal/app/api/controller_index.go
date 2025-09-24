@@ -16,7 +16,6 @@ func (controller *IndexController) Index(c *gin.Context) {
 	config := controller.config
 	response := []byte(fmt.Sprintf("Welcome to %s V%s", config.AppName, config.AppVersion))
 	c.Data(http.StatusOK, "text/html; charset=utf-8", response)
-
 }
 
 func (controller *IndexController) Ping(c *gin.Context) {

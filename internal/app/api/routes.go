@@ -1,7 +1,6 @@
 package api
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -34,7 +33,7 @@ func ConfigureRouter(router *gin.Engine, config *core.Config) error {
 	)
 	err := router.SetTrustedProxies(config.TrustedProxies)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Error setting trusted proxies, error: %s", err.Error()))
+		return fmt.Errorf("Error setting trusted proxies, error: %s", err.Error())
 	}
 
 	index := router.Group("/")
