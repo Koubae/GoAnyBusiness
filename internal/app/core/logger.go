@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -10,7 +11,12 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func CreateLogger(config *Config) (*zap.Logger, *gin.HandlerFunc) {
+const DefaultLoggerName = "default"
+
+var loggerSingleton = make(map[string]*zap.SugaredLogger)
+
+// CreateLogger creates a new logger
+func CreateLogger(config *Config) (*zap.Logger, *gin.HandlerFunc, error) {
 	var cnf *zap.Config
 	level := parseLogLevel(config.AppLogLevel)
 
@@ -21,12 +27,31 @@ func CreateLogger(config *Config) (*zap.Logger, *gin.HandlerFunc) {
 		cnf = newProductionConfig(level)
 	}
 
-	logger, _ := cnf.Build(zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel))
+	logger, err := cnf.Build(zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel))
+	if err != nil {
+		return nil, nil, fmt.Errorf("build logger error: %w", err)
+	}
+
 	middleware := ginzap.GinzapWithConfig(
 		logger,
 		&ginzap.Config{TimeFormat: time.RFC3339, UTC: true, DefaultLevel: zapcore.InfoLevel},
 	)
-	return logger, &middleware
+	loggerSingleton[DefaultLoggerName] = logger.Sugar()
+	return logger, &middleware, nil
+}
+
+// GetLogger returns a logger by name
+func GetLogger(name string) *zap.SugaredLogger {
+	logger, ok := loggerSingleton[name]
+	if !ok {
+		panic(fmt.Sprintf("Logger '%s' does not exist", name))
+	}
+	return logger
+}
+
+// GetDefaultLogger returns the default logger
+func GetDefaultLogger() *zap.SugaredLogger {
+	return GetLogger(DefaultLoggerName)
 }
 
 func newProductionConfig(level zapcore.Level) *zap.Config {

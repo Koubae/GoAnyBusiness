@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -21,7 +22,18 @@ import (
 // Run starts the server
 func Run() {
 	config := initEnv()
-	loggerBase, loggerMiddleware := core.CreateLogger(config)
+
+	loggerBase, loggerMiddleware, err := core.CreateLogger(config)
+	if err != nil {
+		log.Fatalf("Error creating logger: %s", err.Error())
+	}
+
+	defer func(loggerBase *zap.Logger) {
+		err := loggerBase.Sync()
+		if err != nil {
+			log.Printf("Error syncing logger: %s", err.Error())
+		}
+	}(loggerBase)
 	logger := loggerBase.Sugar()
 
 	router := gin.New()
