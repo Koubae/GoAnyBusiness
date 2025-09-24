@@ -11,8 +11,10 @@ APP_ANY_BUSINESS := any-business
 # //////////////////////
 run:
 	@go run ./cmd/$(APP_ANY_BUSINESS)/ .
+run-reload:
+	@air -c .air.any-business.toml
 build:
-	@go build -v ./...
+	@go build -v -o ./bin/any-business ./cmd/any-business
 
 # --------------------------
 # Init

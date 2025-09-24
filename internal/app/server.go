@@ -29,8 +29,13 @@ func Run() {
 	}
 
 	defer func(loggerBase *zap.Logger) {
-		err := loggerBase.Sync()
-		if err != nil {
+		// Sync can return "invalid argument" on non-file sinks like /dev/stderr (benign).
+		if err := loggerBase.Sync(); err != nil {
+			// Ignore known safe errors
+			if err.Error() == "sync /dev/stderr: invalid argument" || err.Error() == "sync /dev/stdout: invalid argument" {
+				return
+			}
+
 			log.Printf("Error syncing logger: %s", err.Error())
 		}
 	}(loggerBase)

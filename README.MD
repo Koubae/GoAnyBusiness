@@ -4,9 +4,24 @@ AnyBusiness
 
 _OpenSource GO Application no-business specific (Any) for learn purposes_
 
+QuickStart
+----------
+
+* 1) Install [air-verse/air](https://github.com/air-verse/air) globally
+
+```bash
+make run
+```
+
 
 Development
 -----------
+
+### Hot-Reload
+
+```bash
+make run-reload
+```
 
 ### Code quality 
 
