@@ -34,11 +34,12 @@ var (
 // Config represents the application config
 type Config struct {
 	Env            Environment
-	AppName        string
-	AppVersion     string
 	TrustedProxies []string
 	host           string
 	port           uint16
+	AppName        string
+	AppVersion     string
+	AppLogLevel    string
 }
 
 // NewConfig creates a new config
@@ -61,6 +62,7 @@ func NewConfig(configName string) *Config {
 
 	appName := utils.GetEnvString("APP_NAME", "unknown")
 	appVersion := utils.GetEnvString("APP_VERSION", "unknown")
+	appLogLevel := utils.GetEnvString("APP_LOG_LEVEL", "INFO")
 
 	environment := Environment(utils.GetEnvString("APP_ENVIRONMENT", "development"))
 	if !slices.Contains(Envs[:], environment) {
@@ -70,11 +72,12 @@ func NewConfig(configName string) *Config {
 
 	config := &Config{
 		Env:            environment,
-		AppName:        appName,
-		AppVersion:     appVersion,
 		TrustedProxies: trustedProxies,
 		host:           host,
 		port:           uint16(port),
+		AppName:        appName,
+		AppVersion:     appVersion,
+		AppLogLevel:    appLogLevel,
 	}
 	configsSingletonMapping[configName] = config
 	return config

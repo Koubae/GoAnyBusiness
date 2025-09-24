@@ -8,21 +8,26 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/Koubae/GoAnyBusiness/internal/app/api"
 	"github.com/Koubae/GoAnyBusiness/internal/app/core"
+	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // Run starts the server
 func Run() {
 	config := initEnv()
+	logger, loggerMiddleware := createLogger(config)
 
 	router := gin.New()
-	router.Use(gin.Logger(), gin.Recovery())
+	router.Use(*loggerMiddleware, ginzap.RecoveryWithZap(logger, true)) // ref router.Use(gin.Logger(), gin.Recovery())
 	api.ConfigureRouter(router, config)
 
 	handler := http.MaxBytesHandler(router, 8<<20)
@@ -104,4 +109,97 @@ func initEnv() *core.Config {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	return config
+}
+
+func NewProductionConfig(level zapcore.Level) *zap.Config {
+	return &zap.Config{
+		Level:       zap.NewAtomicLevelAt(level),
+		Development: false,
+		Sampling: &zap.SamplingConfig{
+			Initial:    100,
+			Thereafter: 100,
+		},
+		Encoding: "json",
+		EncoderConfig: zapcore.EncoderConfig{
+			TimeKey:        "ts",
+			LevelKey:       "level",
+			NameKey:        "logger",
+			CallerKey:      "caller",
+			FunctionKey:    zapcore.OmitKey,
+			MessageKey:     "msg",
+			StacktraceKey:  "stacktrace",
+			LineEnding:     zapcore.DefaultLineEnding,
+			EncodeLevel:    zapcore.LowercaseLevelEncoder,
+			EncodeTime:     zapcore.EpochTimeEncoder,
+			EncodeDuration: zapcore.SecondsDurationEncoder,
+			EncodeCaller:   zapcore.ShortCallerEncoder,
+		},
+		OutputPaths:      []string{"stderr"},
+		ErrorOutputPaths: []string{"stderr"},
+	}
+}
+
+func NewDevelopmentConfig(level zapcore.Level) *zap.Config {
+	return &zap.Config{
+		Level:       zap.NewAtomicLevelAt(level),
+		Development: true,
+		Encoding:    "console",
+		EncoderConfig: zapcore.EncoderConfig{
+			// Keys can be anything except the empty string.
+			TimeKey:        "ts",
+			LevelKey:       "level",
+			NameKey:        "logger",
+			CallerKey:      "caller",
+			MessageKey:     "msg",
+			StacktraceKey:  "stacktrace",
+			FunctionKey:    zapcore.OmitKey,
+			LineEnding:     zapcore.DefaultLineEnding,
+			EncodeLevel:    zapcore.CapitalColorLevelEncoder,
+			EncodeTime:     zapcore.TimeEncoderOfLayout(time.RFC3339),
+			EncodeDuration: zapcore.StringDurationEncoder,
+			EncodeCaller:   zapcore.ShortCallerEncoder,
+		},
+		OutputPaths:      []string{"stderr"},
+		ErrorOutputPaths: []string{"stderr"},
+	}
+}
+
+func parseLogLevel(s string) zapcore.Level {
+	switch strings.ToUpper(strings.TrimSpace(s)) {
+	case "DEBUG":
+		return zapcore.DebugLevel
+	case "INFO":
+		return zapcore.InfoLevel
+	case "WARN", "WARNING":
+		return zapcore.WarnLevel
+	case "ERROR":
+		return zapcore.ErrorLevel
+	case "DPANIC":
+		return zapcore.DPanicLevel
+	case "PANIC":
+		return zapcore.PanicLevel
+	case "FATAL":
+		return zapcore.FatalLevel
+	default:
+		return zapcore.InfoLevel
+	}
+}
+
+func createLogger(config *core.Config) (*zap.Logger, *gin.HandlerFunc) {
+	var cnf *zap.Config
+	level := parseLogLevel(config.AppLogLevel)
+
+	switch config.Env {
+	case core.Testing, core.Development:
+		cnf = NewDevelopmentConfig(level)
+	default:
+		cnf = NewProductionConfig(level)
+	}
+
+	logger, _ := cnf.Build(zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel))
+	middleware := ginzap.GinzapWithConfig(
+		logger,
+		&ginzap.Config{TimeFormat: time.RFC3339, UTC: true, DefaultLevel: zapcore.InfoLevel},
+	)
+	return logger, &middleware
 }
