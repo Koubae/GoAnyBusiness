@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,15 +15,20 @@ import (
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"go.uber.org/zap"
 )
 
 // Run starts the server
 func Run() {
 	config := initEnv()
-	logger, loggerMiddleware := core.CreateLogger(config)
+	loggerBase, loggerMiddleware := core.CreateLogger(config)
+	logger := loggerBase.Sugar()
 
 	router := gin.New()
-	router.Use(*loggerMiddleware, ginzap.RecoveryWithZap(logger, true)) // ref router.Use(gin.Logger(), gin.Recovery())
+	router.Use(
+		*loggerMiddleware,
+		ginzap.RecoveryWithZap(loggerBase, true),
+	)
 	api.ConfigureRouter(router, config)
 
 	handler := http.MaxBytesHandler(router, 8<<20)
@@ -40,14 +44,14 @@ func Run() {
 
 	startUpErr := make(chan error, 1)
 	go func() {
-		log.Printf("%s | Server starting...", srvName)
+		logger.Infof("%s | Server starting...", srvName)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			startUpErr <- fmt.Errorf("server issues while listening: %v", err)
 			return
 		}
 		startUpErr <- nil
 	}()
-	log.Printf("%s | Server started", srvName)
+	logger.Infof("%s | Server started", srvName)
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
@@ -57,7 +61,7 @@ func Run() {
 	defer cancel()
 	go func() {
 		sig := <-sigCh
-		log.Printf("%s - shutting down gracefully (received signal: %s); press Ctrl+C again to force", srvName, sig)
+		logger.Infof("%s - shutting down gracefully (received signal: %s); press Ctrl+C again to force", srvName, sig)
 		cancel()
 	}()
 
@@ -65,14 +69,13 @@ func Run() {
 	case <-ctx.Done():
 	case err := <-startUpErr:
 		if err != nil {
-			log.Printf("%s - server startup/runtime failure, error: %v", srvName, err) // startup/runtime failure
+			logger.Errorf("%s - server startup/runtime failure, error: %v", srvName, err) // startup/runtime failure
 			return
 		}
-		log.Printf(
+		logger.Infof(
 			"%s - Server Shutting down gracefully (After server stop serving), press Ctrl+C again to force",
 			srvName,
 		)
-
 	}
 
 	// The context is used to inform the server it has 10 seconds to finish
@@ -81,19 +84,20 @@ func Run() {
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
 		_ = srv.Close() // If shutdown times out, force close:
-		log.Printf("%s - Server forced to shutdown: %v", srvName, err)
+		logger.Infof("%s - Server forced to shutdown: %v", srvName, err)
 		return
 	}
 
-	log.Printf("%s - Server Shutdown, cleaning up resources", srvName)
+	logger.Infof("%s - Server Shutdown, cleaning up resources", srvName)
 	// TODO: cleanup resources
-	log.Printf("%s - Server exiting", srvName)
+	logger.Infof("%s - Server exiting", srvName)
 }
 
 func initEnv() *core.Config {
 	err := godotenv.Load(".env")
 	if err != nil {
-		log.Fatalf("Error loading .env file: %s", err.Error())
+		logger := zap.Must(zap.NewProduction()).Sugar()
+		logger.Fatalf("Error loading .env file: %s", err.Error())
 	}
 
 	config := core.NewConfig(core.DefaultConfigName)
