@@ -43,6 +43,19 @@ update-env-file:
 #       Docker
 # ============================
 
+# //////////////////////
+# 	Database - postgres
+# //////////////////////
+db-postgres-up:
+	@docker compose up db-postgres-adminer
+db-postgres-down:
+	@docker compose down db-postgres-adminer
+db-postgres-down-clean:
+	@docker compose down -v db-postgres
+db-postgres-shell:
+	@docker compose exec db-postgres bash -lc "PGPASSWORD=admin psql -h db-postgres -U admin -d any_business"
+db-open-dashboard:
+	@open  "http://localhost:18080/?pgsql=db-postgres&username=admin&db=any_business&ns=public"
 
 # ============================
 # 	CI/CD -- Tests & Code Quality

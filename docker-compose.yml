@@ -1,0 +1,41 @@
+# Use postgres/example user/password credentials
+
+services:
+
+  db-postgres:
+    image: postgres:17.6
+    container_name: db-postgres
+    ports:
+      - "${DB_POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_PASSWORD: ${DB_POSTGRES_PASSWORD:-admin}
+      POSTGRES_USER: ${DB_POSTGRES_USER:-admin}
+      POSTGRES_DB: ${DB_POSTGRES_DB:-any_business}
+    # set a shared memory limit when using docker compose
+    # Setting shm_size ensures Postgres has room to allocate its shared memory segment
+    # and won’t randomly fail at startup.
+    shm_size: 128mb
+    volumes:
+      - db-postgres-data:/var/lib/postgresql/data
+      - ./docker/db_postgres/init:/docker-entrypoint-initdb.d:ro
+    restart: unless-stopped
+    healthcheck:
+      test: pg_isready
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  db-postgres-adminer:
+    image: adminer
+    container_name: db-postgres-adminer
+    ports:
+      - "${DB_ADMINER_PORT:-18080}:8080"  # http://localhost:18080/?pgsql=db-postgres&username=admin&db=any_business&ns=public
+    environment:
+      ADMINER_DEFAULT_SERVER: db-postgres
+    depends_on:
+      db-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+
+volumes:
+  db-postgres-data:
